@@ -27,7 +27,7 @@ const ItemList: React.FC<ItemListProps> = ({
   const [listData, setListData] = useState<Data[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const containerRef = useRef<HTMLUListElement>(null);
-  const pages = useRef<number[]>([0]);
+  const pages = useRef<number[]>([]);
   const disableScroll = useRef<boolean>(false);
 
   const handleScroll = useCallback(() => {
@@ -37,27 +37,35 @@ const ItemList: React.FC<ItemListProps> = ({
     if (!container) return;
 
     const { scrollTop, clientHeight, scrollHeight } = container;
+    const threshold = 5; // Trigger next page loading when near bottom
 
+    // Load next page
     if (
-      scrollTop + clientHeight + 5 >= scrollHeight &&
+      scrollTop + clientHeight + threshold >= scrollHeight &&
       currentPage < totalPages
     ) {
       if (!cache.has(currentPage + 1)) {
         setLoading(true);
         loadNextPage();
       }
-    } else if (scrollTop <= pages.current[currentPage - 2] && currentPage > 1) {
+    }
+
+    // Load previous page
+    if (
+      scrollTop <= (pages.current[currentPage - 1] || 0) - threshold &&
+      currentPage > 1
+    ) {
       if (!cache.has(currentPage - 1)) {
         setLoading(true);
         loadPrevPage();
       }
     }
 
+    // Update current page based on scroll position
     const newPage =
       pages.current.findIndex(
         (offset) => scrollTop < offset + clientHeight / 2
       ) + 1;
-
     if (newPage && newPage !== currentPage) {
       setCurrentPage(newPage);
     }
@@ -75,11 +83,12 @@ const ItemList: React.FC<ItemListProps> = ({
     const container = containerRef.current;
     if (IsPageChange && container) {
       disableScroll.current = true;
+
+      // Avoid adding duplicate pages
       if (!pages.current.includes(currentPage)) {
-        pages.current.push(currentPage);
-        pages.current.sort((a, b) => a - b);
-        console.log(pages.current);
+        pages.current.push(container.scrollTop);
       }
+
       setPageChange(false);
       setTimeout(() => {
         disableScroll.current = false;
@@ -95,38 +104,43 @@ const ItemList: React.FC<ItemListProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      if (currentPage === 1) {
-        container.scrollTo({ top: 0 });
-      } else {
-        const offset = pages.current[currentPage - 1];
+      // Scroll to the correct position when data is loaded
+      const offset = pages.current[currentPage - 1];
+      if (offset !== undefined) {
         container.scrollTo({ top: offset });
+      } else if (currentPage === 1) {
+        container.scrollTo({ top: 0 });
       }
     }
-  }, [listData, itemsPerPage, currentPage, totalPages]);
+  }, [listData, currentPage]);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Handle loading state
     if (loading) {
       const timer = setTimeout(() => {
         setLoading(false);
-        const container = containerRef.current;
-        if (container) {
-          pages.current.sort((a, b) => a - b);
-          const offset = pages.current[currentPage - 1];
+        const offset = pages.current[currentPage - 1];
+        if (offset !== undefined) {
           container.scrollTo({ top: offset });
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [loading, currentPage, itemsPerPage, totalPages]);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.scrollTo({
-        top: (container.scrollHeight / totalPages) * (currentPage - 1),
-      });
-    }
-  }, [currentPage, itemsPerPage, totalPages]);
+    // Handle scroll position based on page change
+    const idx = pages.current.findIndex(
+      (offset) => offset === container.scrollTop
+    );
+    const offset =
+      idx !== -1
+        ? (container.scrollHeight / pages.current.length) * (idx + 1)
+        : container.scrollHeight - container.clientHeight / 2;
+
+    container.scrollTo({ top: offset });
+  }, [loading, currentPage, itemsPerPage]);
 
   useEffect(() => {
     const container = containerRef.current;
