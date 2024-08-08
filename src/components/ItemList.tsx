@@ -113,7 +113,7 @@ const ItemList: React.FC<ItemListProps> = ({
       pageOffsets.current = newPageOffsets;
 
       container.scrollTo({
-        top: 300,
+        top: ,
       });
       console.log(pageOffsets);
     }
