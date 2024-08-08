@@ -27,7 +27,7 @@ const ItemList: React.FC<ItemListProps> = ({
   const [listData, setListData] = useState<Data[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const containerRef = useRef<HTMLUListElement>(null);
-  const pages = useRef<number[]>([]);
+  const pages = useRef<number[]>([1]);
   const disableScroll = useRef<boolean>(false);
 
   const handleScroll = useCallback(() => {
