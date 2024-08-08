@@ -27,7 +27,7 @@ const ItemList: React.FC<ItemListProps> = ({
   const [listData, setListData] = useState<Data[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const containerRef = useRef<HTMLUListElement>(null);
-  const pages = useRef<number[]>([1]);
+  const pages = useRef<number[]>([0]);
   const disableScroll = useRef<boolean>(false);
 
   const handleScroll = useCallback(() => {
@@ -75,8 +75,11 @@ const ItemList: React.FC<ItemListProps> = ({
     const container = containerRef.current;
     if (IsPageChange && container) {
       disableScroll.current = true;
-      pages.current.push(currentPage);
-      console.log(pages.current);
+      if (!pages.current.includes(currentPage)) {
+        pages.current.push(currentPage);
+        pages.current.sort((a, b) => a - b);
+        console.log(pages.current);
+      }
       setPageChange(false);
       setTimeout(() => {
         disableScroll.current = false;
